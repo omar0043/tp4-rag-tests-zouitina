@@ -30,7 +30,7 @@ public class RagNaif {
                     "La variable d'environnement GEMINI_KEY est absente."
             );
         }
-        String modelName = "gemini-3.8-flash";
+        String modelName = "gemini-3.5-flash-lite";
 
         ChatModel model = GoogleGenAiChatModel.builder()
                 .apiKey(apiKey)

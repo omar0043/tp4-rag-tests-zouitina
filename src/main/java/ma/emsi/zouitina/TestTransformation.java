@@ -11,21 +11,37 @@ import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.embedding.onnx.allminilml6v2.AllMiniLmL6V2EmbeddingModel;
-import dev.langchain4j.model.google.genai.GoogleGenAiChatModel;import dev.langchain4j.rag.content.retriever.ContentRetriever;
+import dev.langchain4j.model.google.genai.GoogleGenAiChatModel;
+import dev.langchain4j.rag.DefaultRetrievalAugmentor;
+import dev.langchain4j.rag.RetrievalAugmentor;
+import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
+import dev.langchain4j.rag.query.transformer.CompressingQueryTransformer;
 import dev.langchain4j.service.AiServices;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore;
-import dev.langchain4j.rag.DefaultRetrievalAugmentor;
-import dev.langchain4j.rag.RetrievalAugmentor;
-import dev.langchain4j.rag.query.transformer.CompressingQueryTransformer;
 
 import java.util.List;
 import java.util.Scanner;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class TestTransformation {
 
+    private static void configureLogger() {
+        Logger logger = Logger.getLogger("dev.langchain4j");
+        logger.setLevel(Level.FINE);
+        logger.setUseParentHandlers(false);
+
+        ConsoleHandler handler = new ConsoleHandler();
+        handler.setLevel(Level.FINE);
+        logger.addHandler(handler);
+    }
+
     public static void main(String[] args) {
+        configureLogger();
+
         String apiKey = System.getenv("GEMINI_KEY");
 
         if (apiKey == null || apiKey.isBlank()) {
@@ -33,11 +49,12 @@ public class TestTransformation {
                     "La variable d'environnement GEMINI_KEY est absente."
             );
         }
-        String modelName = "gemini-3.8-flash";
 
         ChatModel model = GoogleGenAiChatModel.builder()
                 .apiKey(apiKey)
-                .modelName(modelName)
+                .modelName("gemini-3.5-flash-lite")
+                .logRequests(true)
+                .logResponses(true)
                 .build();
 
         // Phase 1 : charger le PDF et enregistrer les embeddings.
@@ -62,7 +79,7 @@ public class TestTransformation {
 
         System.out.println("Nombre de segments enregistrés : " + segments.size());
 
-// Phase 2 : récupérer les textes pertinents pour chaque question.
+        // Phase 2 : rechercher les extraits avec une question reformulée.
         ContentRetriever contentRetriever =
                 EmbeddingStoreContentRetriever.builder()
                         .embeddingStore(embeddingStore)
@@ -86,7 +103,6 @@ public class TestTransformation {
                 .retrievalAugmentor(retrievalAugmentor)
                 .build();
 
-        // Le même assistant conserve la conversation entre les questions.
         try (Scanner scanner = new Scanner(System.in)) {
             System.out.println("Pose une question, ou écris quitter.");
 
