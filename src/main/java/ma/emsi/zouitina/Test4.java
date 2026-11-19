@@ -23,6 +23,9 @@ import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore;
 import dev.langchain4j.web.search.WebSearchEngine;
 import dev.langchain4j.web.search.tavily.TavilyWebSearchEngine;
+import dev.langchain4j.rag.query.router.LanguageModelQueryRouter;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import java.util.List;
 import java.util.Scanner;
@@ -117,11 +120,30 @@ public class Test4 {
                         .maxResults(3)
                         .build();
 
-        // Chaque question est envoyée aux deux sources.
-        QueryRouter router = new DefaultQueryRouter(
+// Version initiale : interroge systématiquement les deux sources.
+// Conservée pour comparer les comportements.
+// QueryRouter router = new DefaultQueryRouter(
+//         retrieverPdf,
+//         retrieverWeb
+// );
+
+        Map<ContentRetriever, String> sources = new LinkedHashMap<>();
+
+        sources.put(
                 retrieverPdf,
-                retrieverWeb
+                "Support de cours sur le RAG, le fine-tuning, les embeddings "
+                        + "et les modèles de langage. À utiliser pour les questions "
+                        + "portant sur ces notions ou sur le support de cours."
         );
+
+        sources.put(
+                retrieverWeb,
+                "Recherche sur le Web pour les actualités, les événements récents "
+                        + "et les sujets absents du support de cours, "
+                        + "par exemple les missions spatiales de la NASA."
+        );
+
+        QueryRouter router = new LanguageModelQueryRouter(model, sources);
 
         RetrievalAugmentor retrievalAugmentor =
                 DefaultRetrievalAugmentor.builder()
